@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Doc</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+        body {
+            font-family: 'SF Pro Display', Inter, sans-serif;
+            background-color: #FFFFFF;
+            color: #1D1D1F;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            font-size: 28px;
+            font-weight: 600;
+            padding: 20px 0;
+        }
+        .divider {
+            width: 80%;
+            max-width: 600px;
+            height: 2px;
+            background: #A1A1A5;
+            margin: 10px auto 30px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 16px;
+            color: #86868B;
+            margin-bottom: 20px;
+        }
+        .upload-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 2px dashed #86868B;
+            padding: 40px;
+            border-radius: 12px;
+            background-color: #F5F5F7;
+            cursor: pointer;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 10px;
+            transition: background 0.2s;
+        }
+        .upload-box.dragover {
+            background-color: #E5E5E7;
+        }
+        .upload-box input {
+            display: none;
+        }
+        #file-name {
+            font-size: 14px;
+            color: #1D1D1F;
+            margin-top: 8px;
+        }
+        .btn {
+            background: #0071E3;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            width: 100%;
+            max-width: 300px;
+            margin: 10px auto;
+        }
+        .btn:hover {
+            background: #005bb5;
+        }
+        .how-it-works {
+            margin-top: 40px;
+        }
+        .steps {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        .step {
+            text-align: center;
+            width: 80px;
+        }
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #E5E5E7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: 600;
+        }
+        #suggestion-menu {
+            display: none;
+            margin-top: 20px;
+            background-color: #F5F5F7;
+            border: 1px solid #CCC;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .template-option {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #E5E5E7;
+            cursor: pointer;
+        }
+        .template-option.selected,
+        .template-option:hover {
+            background-color: #0071E3;
+            color: #fff;
+        }
+        .download-link {
+            display: block;
+            margin: 16px auto 0;
+            font-size: 16px;
+            color: #0071E3;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">Smart Doc</div>
+    <div class="divider"></div>
+
+    <div class="container">
+        <h1>Transform Your Documents</h1>
+        <p>Upload your document and get instant template suggestions.</p>
+
+        <form id="upload-form" enctype="multipart/form-data" onsubmit="return false;">
+            <div id="drop-area" class="upload-box">
+                <input type="file" id="file-upload" style="display:none;">
+                <p style="font-size: 32px; margin: 0;">+</p>
+                <p>Drag & drop or click to upload</p>
+                <p style="color: #86868B;">Supported formats: DOCX, PDF, TXT</p>
+                <p id="file-name"></p>
+            </div>
+            <button type="button" class="btn" onclick="uploadFile()">Upload File</button>
+            <button type="button" class="btn" onclick="getTemplateSuggestions()">Get Template Suggestions</button>
+        </form>
+
+        <div id="suggestion-menu"></div>
+
+        <div class="how-it-works">
+            <h2>How It Works</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-circle">1</div>
+                    <p>Upload</p>
+                </div>
+                <div class="step">
+                    <div class="step-circle">2</div>
+                    <p>Analyze</p>
+                </div>
+                <div class="step">
+                    <div class="step-circle">3</div>
+                    <p>Transform</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Drag and drop support
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-upload');
+        const fileNameDisplay = document.getElementById('file-name');
+        let uploadedFileName = "";
+        let selectedFile = null;
+
+        dropArea.addEventListener('click', () => fileInput.click());
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.classList.remove('dragover');
+            });
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelection();
+            }
+        });
+
+        fileInput.addEventListener('change', handleFileSelection);
+
+        function handleFileSelection() {
+            if (fileInput.files.length > 0) {
+                selectedFile = fileInput.files[0];
+                uploadedFileName = selectedFile.name;
+                fileNameDisplay.textContent = "Selected file: " + uploadedFileName;
+            } else {
+                fileNameDisplay.textContent = "";
+                uploadedFileName = "";
+                selectedFile = null;
+            }
+        }
+
+        function uploadFile() {
+            if (!selectedFile) {
+                alert("Please select a file before uploading.");
+                return;
+            }
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+            fetch("/upload", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.file_name) {
+                    alert("File uploaded successfully: " + data.file_name);
+                    uploadedFileName = data.file_name;
+                } else {
+                    alert("File upload failed.");
+                }
+            })
+            .catch(error => {
+                console.error("Error uploading file:", error);
+                alert("File upload failed.");
+            });
+        }
+
+        function getTemplateSuggestions() {
+            if (!uploadedFileName) {
+                alert("Please upload a file before getting template suggestions.");
+                return;
+            }
+            fetch("/get-suggestions?file=" + encodeURIComponent(uploadedFileName))
+            .then(response => response.json())
+            .then(data => {
+                const menu = document.getElementById("suggestion-menu");
+                menu.innerHTML = "<h3>Select a Template</h3>";
+                let selectedTemplate = null;
+                if (data.templates && data.templates.length > 0) {
+                    data.templates.forEach((template, index) => {
+                        const div = document.createElement("div");
+                        div.className = "template-option";
+                        div.textContent = template;
+                        div.onclick = function() {
+                            document.querySelectorAll('.template-option').forEach(el => el.classList.remove('selected'));
+                            div.classList.add('selected');
+                            selectedTemplate = template;
+                        };
+                        menu.appendChild(div);
+                    });
+                    const applyBtn = document.createElement("button");
+                    applyBtn.textContent = "Apply Template";
+                    applyBtn.className = "btn";
+                    applyBtn.onclick = function() {
+                        if (selectedTemplate) {
+                            applyTemplate(selectedTemplate);
+                        } else {
+                            alert("Please select a template first.");
+                        }
+                    };
+                    menu.appendChild(applyBtn);
+                } else {
+                    menu.innerHTML += "<p>No templates found.</p>";
+                }
+                menu.style.display = "block";
+            })
+            .catch(error => {
+                console.error("Error fetching template suggestions:", error);
+                alert("Failed to get template suggestions.");
+            });
+        }
+
+        function applyTemplate(template) {
+            if (!uploadedFileName) {
+                alert("Please upload a file first.");
+                return;
+            }
+            fetch("/apply-template", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "file_name": uploadedFileName,
+                    "template": template
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.download_url) {
+                    const menu = document.getElementById("suggestion-menu");
+                    menu.innerHTML = `<h3>Template Applied!</h3>
+                        <a href="${data.download_url}" class="download-link" download>Download Transformed Document</a>`;
+                } else {
+                    alert("Template applied, but no download available.");
+                }
+            })
+            .catch(error => {
+                console.error("Error applying template:", error);
+                alert("Failed to apply template.");
+            });
+        }
+    </script>
+</body>
+</html>
